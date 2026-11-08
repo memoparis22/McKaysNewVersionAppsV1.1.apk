@@ -1,0 +1,6 @@
+{
+  "name": "McKays",
+  "description": "Sistem Manajemen Inventaris, Kasir & Multi-Cabang Parfum McKays",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

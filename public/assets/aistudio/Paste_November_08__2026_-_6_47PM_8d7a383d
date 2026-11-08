@@ -1,0 +1,1292 @@
+```react
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Users, ShoppingCart, Package, UserCheck, Settings, 
+  LogOut, Plus, Trash2, Search, Calendar, FileText, 
+  Download, Eye, EyeOff, Shield, RefreshCw, Upload,
+  CheckCircle, ArrowUpRight, TrendingUp, DollarSign,
+  ChevronRight, Box, Camera, Sun, Moon, AlertTriangle, X, Minus,
+  Store, Bell
+} from 'lucide-react';
+
+// ============================================================================
+// MAIN APPLICATION COMPONENT
+// ============================================================================
+export default function App() {
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('mckays_user_session');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [currentTab, setCurrentTab] = useState('home');
+  const [darkMode, setDarkMode] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+  const [priceNotification, setPriceNotification] = useState(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('mckays_user_session', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('mckays_user_session');
+    }
+  }, [currentUser]);
+
+  // Master Pricing (Admin Controlled, synced globally)
+  const [masterPrices, setMasterPrices] = useState({
+    'VC Scandal': { price_ml: 4000, price_botol: 6000 },
+    'PL Romantichwish': { price_ml: 3500, price_botol: 5000 },
+    'Pink Shiffon': { price_ml: 3000, price_botol: 5000 },
+    'ES Cherry': { price_ml: 4500, price_botol: 6000 },
+    'Air ZR Nude': { price_ml: 3500, price_botol: 5000 }
+  });
+
+  // Master Staff Accounts
+  const [staffAccounts, setStaffAccounts] = useState([
+    { id: '1', username: 'budi', password: '123', branch: 'Bandung' },
+    { id: '2', username: 'surabaya', password: '123', branch: 'Surabaya' }
+  ]);
+
+  // Branch Inventory (Bibit & Botol)
+  const [branchInventory, setBranchInventory] = useState({
+    'Pusat': [
+      { id: '1', name: 'VC Scandal', stock_ml: 150, stock_botol: 50 },
+      { id: '2', name: 'PL Romantichwish', stock_ml: 100, stock_botol: 30 },
+      { id: '3', name: 'Pink Shiffon', stock_ml: 80, stock_botol: 40 },
+      { id: '4', name: 'ES Cherry', stock_ml: 9, stock_botol: 5 }
+    ],
+    'Bandung': [
+      { id: '1', name: 'VC Scandal', stock_ml: 50, stock_botol: 20 },
+      { id: '2', name: 'Air ZR Nude', stock_ml: 8, stock_botol: 2 }
+    ],
+    'Surabaya': [
+      { id: '1', name: 'Pink Shiffon', stock_ml: 45, stock_botol: 15 }
+    ]
+  });
+
+  // Orders State
+  const [stockOrders, setStockOrders] = useState([
+    { id: 'ORD-01', branch: 'Bandung', item: 'VC Scandal', ml: 100, botol: 20, status: 'Menunggu Persetujuan' }
+  ]);
+
+  // Transactions State
+  const [transactions, setTransactions] = useState([
+    { id: 'TRX-1001', branch: 'Bandung', type: 'Kombinasi (Bibit + Botol)', item: 'VC Scandal (30ml) + Botol (1pcs)', detail: 'Kombinasi | 30ml | 1pcs', price: 150000, member: 'Siti Rahma', pointsEarned: 15, time: '10:30', date: new Date().toISOString().split('T')[0] }
+  ]);
+
+  // Members State
+  const [members, setMembers] = useState([
+    { id: '1', name: 'Siti Rahma', phone: '081234567890', points: 45 },
+    { id: '2', name: 'Ahmad Fauzi', phone: '089876543210', points: 20 }
+  ]);
+
+  // Global App Logo (Admin controlled, synced to all staff)
+  const [appLogo, setAppLogo] = useState(null);
+
+  if (!currentUser) {
+    return <LoginScreen setStaffAccounts={setStaffAccounts} staffAccounts={staffAccounts} setCurrentUser={setCurrentUser} showToast={showToast} darkMode={darkMode} setDarkMode={setDarkMode} appLogo={appLogo} />;
+  }
+
+  return (
+    <div className={`min-h-screen pb-24 font-sans select-none transition-colors ${darkMode ? 'bg-gray-950 text-white dark' : 'bg-slate-50 text-slate-900'}`}>
+      
+      {/* Top Header */}
+      <header className={`sticky top-0 z-30 px-4 py-3 flex justify-between items-center border-b backdrop-blur-md ${darkMode ? 'bg-gray-950/80 border-gray-800' : 'bg-white/80 border-slate-200'}`}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30 font-black overflow-hidden">
+            {appLogo ? (
+              <img src={appLogo} alt="Logo" className="w-full h-full object-cover" />
+            ) : (
+              'M'
+            )}
+          </div>
+          <div>
+            <h1 className="text-sm font-black leading-tight">McKays</h1>
+            <p className="text-[10px] text-slate-400 font-semibold">{currentUser.role === 'admin' ? 'Admin Pusat' : `Cabang: ${currentUser.branch}`}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-xl border dark:border-gray-800">
+            {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+          </button>
+          <div className="w-9 h-9 rounded-full overflow-hidden border border-blue-600/40 bg-blue-600/20 flex items-center justify-center">
+            {currentUser.profilePic ? (
+              <img src={currentUser.profilePic} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs font-bold text-blue-600">{currentUser.username.substring(0, 2).toUpperCase()}</span>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Price Update Notification for Staff */}
+      {priceNotification && currentUser.role !== 'admin' && (
+        <div className="bg-blue-600 text-white text-xs px-4 py-2.5 font-bold flex justify-between items-center z-40 sticky top-[57px]">
+          <span>{priceNotification}</span>
+          <button onClick={() => setPriceNotification(null)}><X className="w-4 h-4" /></button>
+        </div>
+      )}
+
+      {/* Main Content View */}
+      <main className="max-w-md mx-auto">
+        {currentTab === 'home' && (
+          <HomeTab 
+            currentUser={currentUser} 
+            branchInventory={branchInventory} 
+            setBranchInventory={setBranchInventory}
+            transactions={transactions} 
+            masterPrices={masterPrices}
+            darkMode={darkMode} 
+            showToast={showToast} 
+          />
+        )}
+        {currentTab === 'stock' && (
+          <StockTab 
+            currentUser={currentUser} 
+            branchInventory={branchInventory} 
+            setBranchInventory={setBranchInventory}
+            stockOrders={stockOrders}
+            setStockOrders={setStockOrders}
+            masterPrices={masterPrices}
+            setMasterPrices={setMasterPrices}
+            setPriceNotification={setPriceNotification}
+            darkMode={darkMode} 
+            showToast={showToast} 
+          />
+        )}
+        {currentTab === 'history' && (
+          <HistoryTab 
+            currentUser={currentUser} 
+            transactions={transactions} 
+            darkMode={darkMode} 
+            showToast={showToast} 
+          />
+        )}
+        {currentTab === 'member' && (
+          <MemberTab 
+            currentUser={currentUser}
+            members={members} 
+            setMembers={setMembers} 
+            showToast={showToast} 
+            darkMode={darkMode} 
+          />
+        )}
+        {currentTab === 'profile' && (
+          <ProfileTab 
+            currentUser={currentUser} 
+            setCurrentUser={setCurrentUser}
+            staffAccounts={staffAccounts}
+            setStaffAccounts={setStaffAccounts}
+            branchInventory={branchInventory}
+            setBranchInventory={setBranchInventory}
+            members={members}
+            setMembers={setMembers}
+            transactions={transactions}
+            masterPrices={masterPrices}
+            setMasterPrices={setMasterPrices}
+            stockOrders={stockOrders}
+            setStockOrders={setStockOrders}
+            setPriceNotification={setPriceNotification}
+            appLogo={appLogo}
+            setAppLogo={setAppLogo}
+            darkMode={darkMode}
+            setDarkMode={setDarkMode}
+            showToast={showToast}
+          />
+        )}
+      </main>
+
+      {/* Floating Bottom Navigation Bar */}
+      <nav className={`fixed bottom-4 left-4 right-4 max-w-sm mx-auto rounded-3xl border p-1.5 flex justify-around items-center z-40 backdrop-blur-xl shadow-2xl ${darkMode ? 'bg-gray-900/90 border-gray-800' : 'bg-white/90 border-slate-200'}`}>
+        <NavItem active={currentTab === 'home'} onClick={() => setCurrentTab('home')} icon={<TrendingUp className="w-5 h-5" />} label="Home" darkMode={darkMode} />
+        <NavItem active={currentTab === 'stock'} onClick={() => setCurrentTab('stock')} icon={<Package className="w-5 h-5" />} label="Stok" darkMode={darkMode} />
+        <NavItem active={currentTab === 'history'} onClick={() => setCurrentTab('history')} icon={<FileText className="w-5 h-5" />} label="Riwayat" darkMode={darkMode} />
+        <NavItem active={currentTab === 'member'} onClick={() => setCurrentTab('member')} icon={<Users className="w-5 h-5" />} label="Member" darkMode={darkMode} />
+        <NavItem active={currentTab === 'profile'} onClick={() => setCurrentTab('profile')} icon={<Settings className="w-5 h-5" />} label="Akun" darkMode={darkMode} />
+      </nav>
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-2 animate-bounce">
+          <CheckCircle className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NavItem({ active, onClick, icon, label, darkMode }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`flex flex-col items-center py-2 px-3 rounded-2xl transition-all ${active ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/40 font-bold scale-105' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+    >
+      {icon}
+      <span className="text-[10px] mt-1">{label}</span>
+    </button>
+  );
+}
+
+// ============================================================================
+// 1. LOGIN SCREEN
+// ============================================================================
+function LoginScreen({ staffAccounts, setCurrentUser, showToast, darkMode, appLogo }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (username === 'mckays' && password === 'bismillah22') {
+      setCurrentUser({ username: 'mckays', role: 'admin', branch: 'Pusat' });
+      showToast('Login berhasil sebagai Admin Pusat!');
+      return;
+    }
+
+    const foundStaff = staffAccounts.find(s => s.username === username && s.password === password);
+    if (foundStaff) {
+      setCurrentUser({ username: foundStaff.username, role: 'staff', branch: foundStaff.branch });
+      showToast(`Login berhasil sebagai Staff (${foundStaff.branch})!`);
+      return;
+    }
+
+    alert('ID atau Password salah!');
+  };
+
+  return (
+    <div className={`min-h-screen flex items-center justify-center p-6 transition-colors ${darkMode ? 'bg-gray-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
+      <div className={`w-full max-w-sm p-8 rounded-3xl border shadow-2xl space-y-6 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200'}`}>
+        
+        <div className="text-center space-y-2">
+          <div className="w-16 h-16 rounded-3xl bg-blue-600 mx-auto flex items-center justify-center text-white shadow-xl shadow-blue-600/40 text-2xl font-black overflow-hidden">
+            {appLogo ? (
+              <img src={appLogo} alt="Logo" className="w-full h-full object-cover" />
+            ) : (
+              'M'
+            )}
+          </div>
+          <h1 className="text-xl font-black tracking-tight">McKays</h1>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-slate-400 mb-1 block">ID</label>
+            <input 
+              type="text" 
+              required
+              placeholder="ID"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-3.5 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-sm font-semibold"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-400 mb-1 block">Insert Password</label>
+            <div className="relative">
+              <input 
+                type={showPass ? 'text' : 'password'} 
+                required
+                placeholder="Insert password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3.5 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-sm font-semibold pr-12"
+              />
+              <button 
+                type="button" 
+                onClick={() => setShowPass(!showPass)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+              >
+                {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <button 
+            type="submit"
+            className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-xl shadow-blue-600/30 transition"
+          >
+            LOGIN
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 2. HOME TAB
+// ============================================================================
+function HomeTab({ currentUser, branchInventory, setBranchInventory, transactions, masterPrices, darkMode, showToast }) {
+  const isAdmin = currentUser.role === 'admin';
+  const activeBranch = currentUser.branch;
+
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
+
+  const dateTx = transactions.filter(tx => tx.date === selectedDate && (isAdmin ? true : tx.branch === activeBranch));
+  const totalOmzet = dateTx.reduce((sum, tx) => sum + tx.price, 0);
+
+  const rawItems = branchInventory[isAdmin ? 'Pusat' : activeBranch] || [];
+  const lowStockItems = rawItems.filter(i => (i.stock_ml || 0) < 10 || (i.stock_botol || 0) < 10).slice(0, 4);
+
+  const bestSellers = ['VC Scandal', 'PL Romantichwish', 'Pink Shiffon', 'ES Cherry', 'Air ZR Nude'];
+  const activeBestSellers = rawItems.filter(i => bestSellers.some(bs => i.name.toLowerCase().includes(bs.toLowerCase())));
+
+  return (
+    <div className="p-4 max-w-md mx-auto space-y-5">
+      
+      {/* Omset Card */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-700 to-indigo-800 p-6 text-white shadow-2xl">
+        <div className="absolute right-[-20px] bottom-[-20px] opacity-15">
+          <TrendingUp className="w-40 h-40" />
+        </div>
+        <div className="relative z-10 space-y-3">
+          <div>
+            <p className="text-xs text-blue-200 font-bold uppercase tracking-wider">Total Omset ({isAdmin ? 'Pusat' : activeBranch})</p>
+            <h2 className="text-3xl font-black mt-1">Rp {totalOmzet.toLocaleString('id-ID')}</h2>
+          </div>
+          
+          <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md px-3.5 py-2 rounded-2xl w-fit border border-white/20">
+            <Calendar className="w-4 h-4 text-blue-200" />
+            <input 
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-transparent text-xs font-bold text-white outline-none cursor-pointer"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Action Button: Buka Kasir Penjualan */}
+      <button 
+        onClick={() => setIsSalesModalOpen(true)}
+        className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2 transition"
+      >
+        <ShoppingCart className="w-5 h-5" />
+        Buka Kasir Penjualan
+      </button>
+
+      {/* Best Seller Section */}
+      <div className="space-y-3">
+        <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Best Seller</h3>
+        <div className="grid grid-cols-2 gap-3">
+          {activeBestSellers.length === 0 ? (
+            <p className="text-xs text-slate-400 col-span-2 py-3 text-center">Belum ada item best seller di stok toko.</p>
+          ) : (
+            activeBestSellers.map((item) => (
+              <div key={item.id} className={`p-3.5 rounded-2xl border ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                <h4 className="font-extrabold text-xs truncate">{item.name}</h4>
+                <div className="mt-2 flex justify-between items-center text-[10px]">
+                  <span className="text-blue-500 font-bold">{item.stock_ml || 0}ml</span>
+                  <span className="text-purple-500 font-bold">{item.stock_botol || 0}pcs</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Low Stock Warning Section (< 10) */}
+      <div className="space-y-3">
+        <h3 className="text-xs font-black uppercase tracking-wider text-rose-500 flex items-center gap-1.5">
+          <AlertTriangle className="w-4 h-4" /> Stok Menipis (&lt; 10)
+        </h3>
+        <div className="space-y-2">
+          {lowStockItems.length === 0 ? (
+            <p className="text-xs text-slate-400 py-3 text-center">Semua stok aman.</p>
+          ) : (
+            lowStockItems.map((item) => (
+              <div key={item.id} className={`p-3.5 rounded-2xl border flex justify-between items-center ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                <span className="font-bold text-xs">{item.name}</span>
+                <span className="text-xs font-black text-rose-500">
+                  {item.stock_ml < 10 ? `${item.stock_ml}ml` : `${item.stock_botol}pcs`}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Sales Modal */}
+      {isSalesModalOpen && (
+        <SalesModal 
+          currentUser={currentUser} 
+          branchInventory={branchInventory} 
+          setBranchInventory={setBranchInventory}
+          transactions={transactions}
+          setTransactions={setTransactions}
+          masterPrices={masterPrices}
+          onClose={() => setIsSalesModalOpen(false)}
+          showToast={showToast}
+          darkMode={darkMode}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// 3. STOCK TAB
+// ============================================================================
+function StockTab({ currentUser, branchInventory, setBranchInventory, stockOrders, setStockOrders, masterPrices, setMasterPrices, setPriceNotification, darkMode, showToast }) {
+  const isAdmin = currentUser.role === 'admin';
+  const activeBranch = currentUser.branch;
+  const rawItems = branchInventory[activeBranch] || [];
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [orderItemName, setOrderItemName] = useState('');
+  const [orderMl, setOrderMl] = useState('');
+  const [orderBotol, setOrderBotol] = useState('');
+
+  const filteredItems = rawItems
+    .filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const handleDeleteItem = (id) => {
+    if (confirm('Hapus item produk ini dari stok?')) {
+      const updated = { ...branchInventory };
+      updated[activeBranch] = updated[activeBranch].filter(i => i.id !== id);
+      setBranchInventory(updated);
+      showToast('Item berhasil dihapus.');
+    }
+  };
+
+  const handleUpdatePrice = (itemName, mlPrice, botolPrice) => {
+    const updated = {
+      ...masterPrices,
+      [itemName]: { price_ml: parseFloat(mlPrice) || 0, price_botol: parseFloat(botolPrice) || 0 }
+    };
+    setMasterPrices(updated);
+    setPriceNotification(`Harga ${itemName} telah diperbarui oleh Admin!`);
+    showToast('Harga Master berhasil diperbarui & disinkronkan!');
+  };
+
+  const handleSendOrder = (e) => {
+    e.preventDefault();
+    if (!orderItemName.trim()) return;
+
+    const newOrder = {
+      id: `ORD-${Math.floor(100 + Math.random() * 900)}`,
+      branch: activeBranch,
+      item: orderItemName.trim(),
+      ml: parseFloat(orderMl) || 0,
+      botol: parseFloat(orderBotol) || 0,
+      status: 'Menunggu Persetujuan'
+    };
+
+    setStockOrders([...stockOrders, newOrder]);
+    setOrderItemName('');
+    setOrderMl('');
+    setOrderBotol('');
+    setIsOrderModalOpen(false);
+    showToast('Order berhasil dikirim ke Admin Pusat!');
+  };
+
+  return (
+    <div className="p-4 max-w-md mx-auto space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-lg font-black">Katalog & Stok ({activeBranch})</h2>
+          <p className="text-xs text-slate-400">Urut Abjad A-Z</p>
+        </div>
+        {!isAdmin && (
+          <button 
+            onClick={() => setIsOrderModalOpen(true)}
+            className="px-4 py-2.5 rounded-2xl bg-blue-600 text-white font-bold text-xs shadow-lg shadow-blue-600/30"
+          >
+            Order Stok
+          </button>
+        )}
+      </div>
+
+      {/* Admin Master Pricing inside Stock Tab */}
+      {isAdmin && (
+        <div className={`p-4 rounded-3xl border space-y-3 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <h3 className="text-xs font-extrabold text-blue-500 uppercase tracking-wider">Kelola Harga Master (Per ml & Botol)</h3>
+          <p className="text-[10px] text-slate-400">Perubahan harga otomatis tersinkron ke semua akun staff cabang.</p>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {Object.keys(masterPrices).map(itemName => (
+              <div key={itemName} className="space-y-1 pb-2 border-b dark:border-gray-800 last:border-none">
+                <span className="font-bold text-xs">{itemName}</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <input 
+                    type="number"
+                    defaultValue={masterPrices[itemName].price_ml}
+                    onBlur={(e) => handleUpdatePrice(itemName, e.target.value, masterPrices[itemName].price_botol)}
+                    placeholder="Harga / ml"
+                    className="px-3 py-2 rounded-xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold"
+                  />
+                  <input 
+                    type="number"
+                    defaultValue={masterPrices[itemName].price_botol}
+                    onBlur={(e) => handleUpdatePrice(itemName, masterPrices[itemName].price_ml, e.target.value)}
+                    placeholder="Harga Botol"
+                    className="px-3 py-2 rounded-xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="relative">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <input 
+          type="text"
+          placeholder="Cari produk..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-3 rounded-2xl border dark:border-gray-700 bg-white dark:bg-gray-900 text-xs font-semibold"
+        />
+      </div>
+
+      <div className="space-y-3">
+        {filteredItems.length === 0 ? (
+          <p className="text-center py-12 text-slate-400 text-xs">Belum ada stok.</p>
+        ) : (
+          filteredItems.map((item) => (
+            <div key={item.id} className={`p-4 rounded-2xl border flex justify-between items-center ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <div>
+                <h3 className="font-extrabold text-sm">{item.name}</h3>
+                <div className="mt-1 flex gap-3 text-xs font-bold">
+                  <span className="text-blue-500">Bibit: {item.stock_ml || 0}ml</span>
+                  <span className="text-purple-500">Botol: {item.stock_botol || 0}pcs</span>
+                </div>
+              </div>
+
+              {isAdmin && (
+                <button onClick={() => handleDeleteItem(item.id)} className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Order Modal for Staff */}
+      {isOrderModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className={`w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-6 space-y-4 ${darkMode ? 'bg-gray-900 text-white border border-gray-800' : 'bg-white text-slate-900'}`}>
+            <div className="flex justify-between items-center pb-2 border-b dark:border-gray-800">
+              <h3 className="font-black text-base">Form Order Barang ke Admin</h3>
+              <button onClick={() => setIsOrderModalOpen(false)} className="p-2 rounded-full bg-slate-100 dark:bg-gray-800">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSendOrder} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-400 mb-1 block">Cari / Ketik Nama Item</label>
+                <input 
+                  type="text"
+                  required
+                  placeholder="cth: VC Scandal"
+                  value={orderItemName}
+                  onChange={(e) => setOrderItemName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 mb-1 block">Jumlah (ml)</label>
+                  <input 
+                    type="number"
+                    placeholder="0"
+                    value={orderMl}
+                    onChange={(e) => setOrderMl(e.target.value)}
+                    className="w-full px-4 py-3 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 mb-1 block">Jumlah Botol (pcs)</label>
+                  <input 
+                    type="number"
+                    placeholder="0"
+                    value={orderBotol}
+                    onChange={(e) => setOrderBotol(e.target.value)}
+                    className="w-full px-4 py-3 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold"
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full py-4 rounded-2xl bg-blue-600 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30"
+              >
+                Kirim Order ke Admin
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// 4. HISTORY TAB
+// ============================================================================
+function HistoryTab({ currentUser, transactions, darkMode, showToast }) {
+  const isAdmin = currentUser.role === 'admin';
+  const activeBranch = currentUser.branch;
+
+  const [filterType, setFilterType] = useState('daily');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+
+  const filteredTx = transactions.filter(tx => {
+    if (!isAdmin && tx.branch !== activeBranch) return false;
+
+    if (filterType === 'daily') return tx.date === selectedDate;
+    if (filterType === 'monthly') return tx.date.startsWith(selectedMonth);
+    if (filterType === 'yearly') return tx.date.startsWith(selectedYear);
+    return true;
+  });
+
+  const totalOmzetFiltered = filteredTx.reduce((sum, tx) => sum + tx.price, 0);
+
+  const exportCSV = () => {
+    let csvContent = "data:text/csv;charset=utf-8,No,Tanggal,ID Transaksi,Cabang,Tipe,Produk,Harga,Member\n";
+    filteredTx.forEach((tx, idx) => {
+      csvContent += `${idx + 1},${tx.date},${tx.id},${tx.branch},${tx.type},"${tx.item}",${tx.price},"${tx.member}"\n`;
+    });
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Laporan_Omset_${filterType}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Laporan CSV berhasil diunduh!');
+  };
+
+  const exportPDF = () => {
+    window.print();
+    showToast('Membuka dialog cetak PDF...');
+  };
+
+  return (
+    <div className="p-4 max-w-md mx-auto space-y-4">
+      <div>
+        <h2 className="text-lg font-black">Riwayat Transaksi</h2>
+        <p className="text-xs text-slate-400">Filter berdasarkan Kalender Masehi</p>
+      </div>
+
+      <div className={`p-4 rounded-3xl border space-y-3 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <div className="flex gap-2">
+          <button onClick={() => setFilterType('daily')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${filterType === 'daily' ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-gray-800 text-slate-400'}`}>Harian</button>
+          <button onClick={() => setFilterType('monthly')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${filterType === 'monthly' ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-gray-800 text-slate-400'}`}>Bulanan</button>
+          <button onClick={() => setFilterType('yearly')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${filterType === 'yearly' ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-gray-800 text-slate-400'}`}>Tahunan</button>
+        </div>
+
+        {filterType === 'daily' && (
+          <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2.5 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold" />
+        )}
+        {filterType === 'monthly' && (
+          <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="w-full px-4 py-2.5 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold" />
+        )}
+        {filterType === 'yearly' && (
+          <input type="number" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="w-full px-4 py-2.5 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold" />
+        )}
+
+        <div className="pt-2 flex justify-between items-center text-xs font-bold">
+          <span className="text-slate-400">Total Omset:</span>
+          <span className="text-blue-500 font-black text-sm">Rp {totalOmzetFiltered.toLocaleString('id-ID')}</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 pt-2">
+          <button onClick={exportCSV} className="py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md">
+            <Download className="w-3.5 h-3.5" /> CSV
+          </button>
+          <button onClick={exportPDF} className="py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md">
+            <FileText className="w-3.5 h-3.5" /> PDF
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {filteredTx.length === 0 ? (
+          <p className="text-center py-12 text-slate-400 text-xs">Tidak ada riwayat transaksi.</p>
+        ) : (
+          filteredTx.map((tx) => (
+            <div key={tx.id} className={`p-4 rounded-2xl border flex justify-between items-center ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <div>
+                <h4 className="font-extrabold text-xs">{tx.item}</h4>
+                <p className="text-[10px] text-slate-400 mt-0.5">{tx.date} • {tx.time} • {tx.branch}</p>
+              </div>
+              <span className="font-black text-xs text-emerald-500">Rp {tx.price.toLocaleString('id-ID')}</span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 5. MEMBER TAB
+// ============================================================================
+function MemberTab({ currentUser, members, setMembers, showToast, darkMode }) {
+  const isAdmin = currentUser.role === 'admin';
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [initialPoints, setInitialPoints] = useState('0');
+
+  const handleAddMember = (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setMembers([...members, { 
+      id: Math.random().toString(), 
+      name: name.trim(), 
+      phone: phone.trim() || '-', 
+      points: parseInt(initialPoints) || 0 
+    }]);
+    setName('');
+    setPhone('');
+    setInitialPoints('0');
+    showToast('Member baru ditambahkan dengan poin!');
+  };
+
+  const handleDeleteMember = (id) => {
+    if (confirm('Hapus member ini?')) {
+      setMembers(members.filter(m => m.id !== id));
+      showToast('Member berhasil dihapus.');
+    }
+  };
+
+  return (
+    <div className="p-4 max-w-md mx-auto space-y-4">
+      <div>
+        <h2 className="text-lg font-black">Data Member Loyalitas</h2>
+        <p className="text-xs text-slate-400">Kelola pelanggan terdaftar</p>
+      </div>
+
+      <form onSubmit={handleAddMember} className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <h3 className="text-xs font-bold text-blue-500">Tambah Member Baru & Poin</h3>
+        <input type="text" placeholder="Nama Member" required value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-medium" />
+        <input type="text" placeholder="Nomor Telepon" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-medium" />
+        <div>
+          <label className="text-[10px] text-slate-400 font-bold mb-1 block">Poin Awal (Opsional)</label>
+          <input type="number" value={initialPoints} onChange={(e) => setInitialPoints(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-medium" />
+        </div>
+        <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-md">Tambah Member</button>
+      </form>
+
+      <div className="space-y-2">
+        {members.map((m) => (
+          <div key={m.id} className={`p-3.5 rounded-2xl border flex justify-between items-center ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <div>
+              <h4 className="font-bold text-xs">{m.name}</h4>
+              <p className="text-[10px] text-slate-400">{m.phone}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-xs font-black">{m.points} Poin</span>
+              {isAdmin && (
+                <button onClick={() => handleDeleteMember(m.id)} className="p-1.5 rounded-lg bg-rose-500/10 text-rose-500">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 6. PROFILE TAB (Admin Control Hub)
+// ============================================================================
+function ProfileTab({ 
+  currentUser, setCurrentUser, staffAccounts, setStaffAccounts, 
+  branchInventory, setBranchInventory, members, setMembers, 
+  transactions, masterPrices, setMasterPrices, stockOrders, setStockOrders,
+  setPriceNotification, appLogo, setAppLogo, darkMode, setDarkMode, showToast 
+}) {
+  const isAdmin = currentUser.role === 'admin';
+
+  const [newStaffUser, setNewStaffUser] = useState('');
+  const [newStaffPass, setNewStaffPass] = useState('');
+  const [newStaffBranch, setNewStaffBranch] = useState('');
+
+  // Edit Staff Password State
+  const [editingStaffId, setEditingStaffId] = useState(null);
+  const [editStaffNewPass, setEditStaffNewPass] = useState('');
+
+  // Bulk Upload State
+  const [bulkBranch, setBulkBranch] = useState('Pusat');
+  const [bulkText, setBulkText] = useState('');
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCurrentUser({ ...currentUser, profilePic: reader.result });
+        showToast('Foto profil diperbarui!');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAppLogo(reader.result);
+        showToast('Logo aplikasi berhasil diperbarui & disinkronkan!');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleResetPoints = () => {
+    if (confirm('Nol-kan semua poin member?')) {
+      setMembers(members.map(m => ({ ...m, points: 0 })));
+      showToast('Semua poin member dinolkan.');
+    }
+  };
+
+  const handleBulkUpload = (e) => {
+    e.preventDefault();
+    if (!bulkText.trim()) return;
+
+    const lines = bulkText.split('\n');
+    let addedCount = 0;
+    const currentInv = [...(branchInventory[bulkBranch] || [])];
+
+    lines.forEach(line => {
+      const parts = line.split(',');
+      if (parts.length >= 1) {
+        const name = parts[0].trim();
+        const ml = parseFloat(parts[1]) || 50;
+        const botol = parseFloat(parts[2]) || 20;
+
+        if (name) {
+          const existing = currentInv.find(i => i.name.toLowerCase() === name.toLowerCase());
+          if (existing) {
+            existing.stock_ml += ml;
+            existing.stock_botol += botol;
+          } else {
+            currentInv.push({ id: Math.random().toString(), name, stock_ml: ml, stock_botol: botol });
+          }
+          addedCount++;
+        }
+      }
+    });
+
+    setBranchInventory({ ...branchInventory, [bulkBranch]: currentInv });
+    setBulkText('');
+    showToast(`Berhasil upload ${addedCount} produk ke ${bulkBranch}!`);
+  };
+
+  const handleAddStaff = (e) => {
+    e.preventDefault();
+    if (!newStaffUser || !newStaffPass || !newStaffBranch) return;
+
+    setStaffAccounts([...staffAccounts, {
+      id: Math.random().toString(),
+      username: newStaffUser.trim(),
+      password: newStaffPass.trim(),
+      branch: newStaffBranch.trim()
+    }]);
+
+    if (!branchInventory[newStaffBranch.trim()]) {
+      setBranchInventory({
+        ...branchInventory,
+        [newStaffBranch.trim()]: []
+      });
+    }
+
+    setNewStaffUser('');
+    setNewStaffPass('');
+    setNewStaffBranch('');
+    showToast('Cabang & Staff baru berhasil ditambahkan!');
+  };
+
+  const handleUpdateStaffPassword = (staffId) => {
+    if (!editStaffNewPass.trim()) return;
+    setStaffAccounts(staffAccounts.map(s => {
+      if (s.id === staffId) {
+        return { ...s, password: editStaffNewPass.trim() };
+      }
+      return s;
+    }));
+    setEditingStaffId(null);
+    setEditStaffNewPass('');
+    showToast('Password staff berhasil diperbarui!');
+  };
+
+  const handleApproveOrder = (ordId, approve) => {
+    const updatedOrders = stockOrders.map(ord => {
+      if (ord.id === ordId) {
+        if (approve) {
+          const branch = ord.branch;
+          const currentInv = branchInventory[branch] || [];
+          const existingItem = currentInv.find(i => i.name.toLowerCase() === ord.item.toLowerCase());
+
+          let newInv = [...currentInv];
+          if (existingItem) {
+            newInv = newInv.map(i => i.id === existingItem.id ? { ...i, stock_ml: i.stock_ml + ord.ml, stock_botol: i.stock_botol + ord.botol } : i);
+          } else {
+            newInv.push({ id: Math.random().toString(), name: ord.item, stock_ml: ord.ml, stock_botol: ord.botol });
+          }
+          setBranchInventory({ ...branchInventory, [branch]: newInv });
+        }
+        return { ...ord, status: approve ? 'Disetujui' : 'Ditolak' };
+      }
+      return ord;
+    });
+    setStockOrders(updatedOrders);
+    showToast(approve ? 'Order disetujui & stok masuk cabang!' : 'Order ditolak.');
+  };
+
+  const exportMonthlyReport = (type) => {
+    let content = "No,Tanggal,Cabang,Produk,Harga,Member\n";
+    transactions.forEach((tx, idx) => {
+      content += `${idx + 1},${tx.date},${tx.branch},"${tx.item}",${tx.price},"${tx.member}"\n`;
+    });
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Laporan_Bulanan_${new Date().toISOString().slice(0, 7)}.${type === 'excel' ? 'csv' : 'txt'}`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`Export ${type.toUpperCase()} Laporan Bulanan Berhasil!`);
+  };
+
+  return (
+    <div className="p-4 max-w-md mx-auto space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-black">Pengaturan Akun</h2>
+        <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-xl border dark:border-gray-800">
+          {darkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5" />}
+        </button>
+      </div>
+
+      <div className={`p-6 rounded-3xl border text-center space-y-3 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <div className="relative w-20 h-20 mx-auto rounded-full bg-blue-600/25 flex items-center justify-center overflow-hidden border-2 border-blue-600">
+          {currentUser.profilePic ? (
+            <img src={currentUser.profilePic} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            <span className="font-black text-xl text-blue-600">{currentUser.username.substring(0, 2).toUpperCase()}</span>
+          )}
+          <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition cursor-pointer text-white">
+            <Camera className="w-6 h-6" />
+            <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+          </label>
+        </div>
+        <div>
+          <h3 className="font-extrabold text-base">{currentUser.username}</h3>
+          <p className="text-xs text-blue-500 font-semibold">{isAdmin ? 'Admin Pusat' : `Staff Cabang: ${currentUser.branch}`}</p>
+        </div>
+      </div>
+
+      {isAdmin && (
+        <div className="space-y-4">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Kontrol Master & Manajemen</h3>
+          
+          {/* Admin App Logo Uploader */}
+          <div className={`p-4 rounded-3xl border space-y-3 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <h4 className="text-xs font-extrabold text-blue-500">Ubah Logo Aplikasi (Sinkron Semua Akun)</h4>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white overflow-hidden border">
+                {appLogo ? <img src={appLogo} alt="App Logo" className="w-full h-full object-cover" /> : 'M'}
+              </div>
+              <label className="flex-1 py-2.5 px-4 rounded-xl bg-blue-600 text-white font-bold text-xs text-center cursor-pointer shadow-md">
+                Upload Logo Baru
+                <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+              </label>
+            </div>
+          </div>
+
+          {/* Bulk Upload Products */}
+          <form onSubmit={handleBulkUpload} className={`p-4 rounded-3xl border space-y-3 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <h4 className="text-xs font-extrabold text-blue-500">Upload List Produk Massal</h4>
+            <select value={bulkBranch} onChange={(e) => setBulkBranch(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold">
+              <option value="Pusat">Pusat</option>
+              {Object.keys(branchInventory).filter(b => b !== 'Pusat').map(b => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+            <textarea 
+              rows="3"
+              placeholder="Format: NamaProduk, ml, botol&#10;cth: Vanilla Blue, 100, 30"
+              value={bulkText}
+              onChange={(e) => setBulkText(e.target.value)}
+              className="w-full p-3 rounded-xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-mono"
+            />
+            <button type="submit" className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md">Upload Massal ke Cabang</button>
+          </form>
+
+          {/* Approve Stock Orders */}
+          <div className={`p-4 rounded-3xl border space-y-3 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <h4 className="text-xs font-extrabold text-blue-500">Persetujuan Request Barang Cabang</h4>
+            {stockOrders.length === 0 ? (
+              <p className="text-xs text-slate-400">Belum ada order masuk.</p>
+            ) : (
+              stockOrders.map(ord => (
+                <div key={ord.id} className="p-3 rounded-2xl border dark:border-gray-800 flex justify-between items-center text-xs">
+                  <div>
+                    <p className="font-bold">{ord.branch} - {ord.item}</p>
+                    <p className="text-[10px] text-slate-400">Ml: {ord.ml} | Botol: {ord.botol}</p>
+                    <span className="text-[10px] font-bold text-amber-500">{ord.status}</span>
+                  </div>
+                  {ord.status === 'Menunggu Persetujuan' && (
+                    <div className="flex gap-1.5">
+                      <button onClick={() => handleApproveOrder(ord.id, true)} className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold">Setuju</button>
+                      <button onClick={() => handleApproveOrder(ord.id, false)} className="px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold">Tolak</button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Add Staff & Branch */}
+          <form onSubmit={handleAddStaff} className={`p-4 rounded-3xl border space-y-3 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <h4 className="text-xs font-extrabold text-blue-500">Kelola Toko Cabang & Staff</h4>
+            <input type="text" placeholder="Username Staff" required value={newStaffUser} onChange={(e) => setNewStaffUser(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-medium" />
+            <input type="password" placeholder="Password" required value={newStaffPass} onChange={(e) => setNewStaffPass(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-medium" />
+            <input type="text" placeholder="Nama Cabang (cth: Medan)" required value={newStaffBranch} onChange={(e) => setNewStaffBranch(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-medium" />
+            <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-md">Tambah Cabang & Staff</button>
+          
+            {/* List and Update Staff Passwords */}
+            <div className="pt-3 space-y-2 border-t dark:border-gray-800">
+              <p className="text-[10px] font-bold text-slate-400">Daftar Akun Staff & Ganti Password:</p>
+              {staffAccounts.map(staff => (
+                <div key={staff.id} className="p-3 rounded-2xl border dark:border-gray-800 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <div>
+                      <span className="font-extrabold">{staff.username}</span>
+                      <span className="text-slate-400 ml-1.5">({staff.branch})</span>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setEditingStaffId(editingStaffId === staff.id ? null : staff.id)}
+                      className="text-blue-500 font-bold text-[10px]"
+                    >
+                      {editingStaffId === staff.id ? 'Batal' : 'Ubah Password'}
+                    </button>
+                  </div>
+
+                  {editingStaffId === staff.id && (
+                    <div className="flex gap-2 pt-1">
+                      <input 
+                        type="text"
+                        placeholder="Password baru..."
+                        value={editStaffNewPass}
+                        onChange={(e) => setEditStaffNewPass(e.target.value)}
+                        className="flex-1 px-3 py-1.5 rounded-xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => handleUpdateStaffPassword(staff.id)}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold"
+                      >
+                        Simpan
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </form>
+
+          {/* Export Monthly Reports */}
+          <div className={`p-4 rounded-3xl border space-y-3 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <h4 className="text-xs font-extrabold text-blue-500">Export Laporan Bulanan</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => exportMonthlyReport('pdf')} className="py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs">Export PDF</button>
+              <button onClick={() => exportMonthlyReport('excel')} className="py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs">Export Excel</button>
+            </div>
+          </div>
+
+          {/* Reset Points */}
+          <button onClick={handleResetPoints} className="w-full py-3.5 px-4 rounded-2xl bg-rose-500/10 text-rose-500 font-bold text-xs flex items-center justify-between border border-rose-500/20">
+            <span>Nol-kan Poin Seluruh Member</span>
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      <button onClick={() => setCurrentUser(null)} className="w-full py-4 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-lg shadow-rose-600/30 flex items-center justify-center gap-2 transition">
+        <LogOut className="w-4 h-4" /> LOGOUT DARI APLIKASI
+      </button>
+
+      <div className="text-center pt-4">
+        <p className="text-xs text-slate-400 font-bold">McKays</p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 7. SALES MODAL
+// ============================================================================
+function SalesModal({ currentUser, branchInventory, setBranchInventory, transactions, setTransactions, masterPrices, onClose, showToast, darkMode }) {
+  const activeBranch = currentUser.branch;
+  const rawItems = branchInventory[activeBranch] || [];
+
+  const [saleType, setSaleType] = useState('Kombinasi (Bibit + Botol)');
+  const [selectedBibit, setSelectedBibit] = useState(rawItems[0] || null);
+  const [takaranMl, setTakaranMl] = useState('0');
+  const [jumlahBotol, setJumlahBotol] = useState('0');
+  const [price, setPrice] = useState('0');
+  const [member, setMember] = useState('Umum');
+
+  // Auto calculate price based on Master Prices
+  useEffect(() => {
+    if (!selectedBibit) return;
+    const ml = parseFloat(takaranMl) || 0;
+    const botolPcs = parseFloat(jumlahBotol) || 0;
+    const pricing = masterPrices[selectedBibit.name] || { price_ml: 4000, price_botol: 6000 };
+    
+    let calc = 0;
+    if (saleType.includes('Kombinasi')) {
+      calc = (pricing.price_ml * ml) + (pricing.price_botol * botolPcs);
+    } else if (saleType.includes('Bibit')) {
+      calc = pricing.price_ml * ml;
+    } else if (saleType.includes('Botol')) {
+      calc = pricing.price_botol * botolPcs;
+    }
+    setPrice(calc.toString());
+  }, [selectedBibit, takaranMl, jumlahBotol, saleType, masterPrices]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const mlVal = parseFloat(takaranMl) || 0;
+    const botolVal = parseFloat(jumlahBotol) || 0;
+    const priceVal = parseFloat(price) || 0;
+
+    if (selectedBibit) {
+      if (selectedBibit.stock_ml < mlVal) {
+        alert('Stok bibit tidak mencukupi!');
+        return;
+      }
+      if (selectedBibit.stock_botol < botolVal) {
+        alert('Stok botol tidak mencukupi!');
+        return;
+      }
+
+      const updated = { ...branchInventory };
+      updated[activeBranch] = updated[activeBranch].map(item => {
+        if (item.id === selectedBibit.id) {
+          return {
+            ...item,
+            stock_ml: item.stock_ml - mlVal,
+            stock_botol: item.stock_botol - botolVal
+          };
+        }
+        return item;
+      });
+      setBranchInventory(updated);
+    }
+
+    const newTx = {
+      id: `TRX-${Math.floor(1000 + Math.random() * 9000)}`,
+      branch: activeBranch,
+      type: saleType,
+      item: selectedBibit ? `${selectedBibit.name} (${takaranMl}ml)` : 'Penjualan',
+      detail: `${saleType} | ${takaranMl}ml | ${jumlahBotol}pcs`,
+      price: priceVal,
+      member: member,
+      pointsEarned: Math.floor(priceVal / 10000),
+      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    setTransactions([newTx, ...transactions]);
+    showToast('Transaksi berhasil disimpan!');
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className={`w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto space-y-4 ${darkMode ? 'bg-gray-900 text-white border border-gray-800' : 'bg-white text-slate-900'}`}>
+        
+        <div className="flex justify-between items-center pb-2 border-b dark:border-gray-800">
+          <h3 className="font-black text-base">Kasir Terpadu ({activeBranch})</h3>
+          <button onClick={onClose} className="p-2 rounded-full bg-slate-100 dark:bg-gray-800">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-slate-400 mb-1 block">Tipe Penjualan</label>
+            <select value={saleType} onChange={(e) => setSaleType(e.target.value)} className="w-full px-4 py-3 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold">
+              <option>Kombinasi (Bibit + Botol)</option>
+              <option>Bibit Saja</option>
+              <option>Botol Saja</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-400 mb-1 block">Pilih Bibit / Parfum</label>
+            <select 
+              value={selectedBibit ? selectedBibit.id : ''}
+              onChange={(e) => {
+                const found = rawItems.find(i => i.id === e.target.value);
+                setSelectedBibit(found);
+              }}
+              className="w-full px-4 py-3 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold"
+            >
+              {rawItems.map(item => (
+                <option key={item.id} value={item.id}>
+                  {item.name} (Bibit: {item.stock_ml}ml | Botol: {item.stock_botol}pcs)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-slate-400 mb-1 block">Takaran (ml)</label>
+              <input type="number" value={takaranMl} onChange={(e) => setTakaranMl(e.target.value)} className="w-full px-4 py-3 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-400 mb-1 block">Jumlah Botol (pcs)</label>
+              <input type="number" value={jumlahBotol} onChange={(e) => setJumlahBotol(e.target.value)} className="w-full px-4 py-3 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-400 mb-1 block">Nominal Harga (Dapat Diubah Manual)</label>
+            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full px-4 py-3 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-sm font-black text-blue-500" />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-400 mb-1 block">Pelanggan Member</label>
+            <select value={member} onChange={(e) => setMember(e.target.value)} className="w-full px-4 py-3 rounded-2xl border dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-xs font-bold">
+              <option value="Umum">Pelanggan Umum (Tanpa Poin)</option>
+              <option value="Siti Rahma">Siti Rahma</option>
+              <option value="Ahmad Fauzi">Ahmad Fauzi</option>
+            </select>
+          </div>
+
+          <button type="submit" className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 transition">
+            Proses & Simpan Transaksi
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+```
